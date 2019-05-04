@@ -25,7 +25,7 @@ def convert_xy_projection(source_xy, source_projection, convert_projection):
     # Create a CoordinateTransformation object with specified source_projection and convert_projection
     ct = osr.CoordinateTransformation(source_projection, convert_projection)
 
-    # Reshape: Reshape the source_xy to a mxn (bm=2, n=size) matrix and transpose it
+    # Reshape: Reshape the source_xy to an mxn (bm=2, n=size) matrix and transpose it
     # TransformPoints: Convert the reshaped matrix's coordinates to the desired convert_projection as
     # defined by the ct object
     # Array: Create an array from transformed points with first column x
@@ -62,6 +62,8 @@ proj = geo_dataset.GetProjection()
 x_resolution = gt[1]
 y_resolution = gt[5]
 
+# print("X_RES = " + str(x_resolution) + "\nY_RES = " + str(y_resolution))
+
 # Return minimum and maximum coordinates of the GeoTIFF image
 # Note: RasterXSize and RasterYSize return the raster width and height in pixels
 # Note: Adding or removing half the resolution is a small correction
@@ -70,6 +72,17 @@ xmax = gt[0] + (x_resolution * geo_dataset.RasterXSize) - x_resolution * 0.5
 ymin = gt[3] + (y_resolution * geo_dataset.RasterYSize) + y_resolution * 0.5
 ymax = gt[3] - y_resolution * 0.5
 
+px_x = geo_dataset.RasterXSize
+px_y = geo_dataset.RasterYSize
+
+# print("XMIN = " + str(xmin) + "\nXMAX = " + str(xmax))
+# print("YMIN = " + str(ymin) + "\nYMAX = " + str(ymax))
+
+# TODO: Fix for final image (this is currently only for original image)
+print("Distance for latitude (y) is " + str(-1*y_resolution * 110946.25) + " [meters/pixel].")
+print("Distance for longtitude (x) is " + str(x_resolution * 111319.49) + "*cos(latitude) [meters/pixel].")
+print("Note: We multiply by the cosine of latitude because it's dependent.")
+
 # Clear dataset
 geo_dataset = None
 
@@ -77,11 +90,11 @@ geo_dataset = None
 original_xy = np.mgrid[xmin:xmax + x_resolution:x_resolution, ymax + y_resolution:ymin:y_resolution]
 
 # Create the figure (figsize is given in inches)
-fig = plt.figure(figsize=(20, 20))
+fig = plt.figure(figsize=(2*px_x*0.0104166667, 2*px_y*0.0104166667))
 
 # Create basemap object
-# Note: We center the orthogonala projection with lon_0 and lat_0
-bm = Basemap(projection='ortho', lon_0=xmin+(xmax-xmin)/2, lat_0=ymin+(ymax-ymin)/2, resolution='l')
+# Note: We choose mercator projection and only show map from original GeoTIFF file
+bm = Basemap(projection='merc', lon_0=xmin, llcrnrlat=ymin, urcrnrlat=ymax, llcrnrlon=xmin, urcrnrlon=xmax, resolution='l')
 
 # Create the projection objects for the conversion
 # Get original projection
@@ -98,7 +111,7 @@ converted_x, converted_y = convert_xy_projection(original_xy, origin_proj, targe
 bm.pcolormesh(converted_x, converted_y, data[0, :, :].T, cmap=plt.cm.gray)
 
 # Draw coastlines on map
-bm.drawcoastlines(linewidth=.1)
+bm.drawcoastlines(linewidth=1)
 
 # Reading excel from file and select sheet
 df = pd.read_excel(filetoread[2], sheet_name='Sheet1')
@@ -111,9 +124,9 @@ listLon = df['longitude']
 xlon, ylat = bm(listLon.tolist(), listLat.tolist())
 
 # Plot the route as dots on the map
-plt.scatter(xlon, ylat, zorder=10, s=0.1, alpha=1, marker=',', color='Red')
+plt.plot(xlon, ylat, zorder=10, linewidth=0.5, alpha=1, color='Red')
 
-# TODO: Retrieve current location (currently constant values on route)
+# TODO: Retrieve current location (currently constant values on route) -> see gps_read.py file
 xlon_me = 134.1791
 ylat_me = -28.36473
 
@@ -121,7 +134,10 @@ ylat_me = -28.36473
 xlon_me_map, ylat_me_map = bm(xlon_me, ylat_me)
 
 # Plot the current location as a dot on the map
-bm.plot(xlon_me_map, ylat_me_map, zorder=30, marker='.', alpha=1, markersize=0.1, color='Yellow')
+plt.plot(xlon_me_map, ylat_me_map, zorder=200, marker='+', alpha=1, markersize=4, color='Yellow')
+plt.title("Australian cloud map")
+
+plt.axis('off')
 
 # Saving an image from the generated file
-plt.savefig('world.png', dpi=300)
+plt.savefig('world.png', dpi=72, bbox_inches='tight', pad_inches=0)
