@@ -6,37 +6,12 @@ import numpy as np
 from sys import argv
 import matplotlib.pyplot as plt
 import pandas as pd
+from PIL import Image
 
+VERS_MAJ = 1
+VERS_MIN = 0
 
-def convert_xy_projection(source_xy, source_projection, convert_projection):
-    """
-    Function to convert GeoTIFF file coordinates with origin_proj as projection into convert_projection projection.
-    :param source_xy: Original XY coordinates from GeoTIFF file
-    :param source_projection: Projection of original XY coordinates from GeoTIFF file
-    :param convert_projection: Desired projection to convert original XY coordinates into
-    :return: x_out, y_out - Two mxn matrices with converted projection data
-    """
-
-    # Return the dimensions of source_xy
-    shape = source_xy[0, :, :].shape
-    # Return total number of elements in source_xy
-    size = source_xy[0, :, :].size
-
-    # Create a CoordinateTransformation object with specified source_projection and convert_projection
-    ct = osr.CoordinateTransformation(source_projection, convert_projection)
-
-    # Reshape: Reshape the source_xy to an mxn (bm=2, n=size) matrix and transpose it
-    # TransformPoints: Convert the reshaped matrix's coordinates to the desired convert_projection as
-    # defined by the ct object
-    # Array: Create an array from transformed points with first column x
-    xy_target = np.array(ct.TransformPoints(source_xy.reshape(2, size).T))
-
-    # Reshape the xy_target from a one dimensional matrix to a matrix of mxn dimensions x_out and y_out
-    x_out = xy_target[:, 0].reshape(shape)
-    y_out = xy_target[:, 1].reshape(shape)
-
-    return x_out, y_out
-
+print("\033[93mGeoTIFF to map v" + str(VERS_MAJ) + "." + str(VERS_MIN) + "\033[0m\n")
 
 # Return the console arguments in a variable
 # Usage: filetoread[n]
@@ -62,26 +37,22 @@ proj = geo_dataset.GetProjection()
 x_resolution = gt[1]
 y_resolution = gt[5]
 
-# print("X_RES = " + str(x_resolution) + "\nY_RES = " + str(y_resolution))
-
-# Return minimum and maximum coordinates of the GeoTIFF image
-# Note: RasterXSize and RasterYSize return the raster width and height in pixels
-# Note: Adding or removing half the resolution is a small correction
-xmin = gt[0] + x_resolution * 0.5
-xmax = gt[0] + (x_resolution * geo_dataset.RasterXSize) - x_resolution * 0.5
-ymin = gt[3] + (y_resolution * geo_dataset.RasterYSize) + y_resolution * 0.5
-ymax = gt[3] - y_resolution * 0.5
-
+# RasterXSize and RasterYSize return the raster width and height in pixels
 px_x = geo_dataset.RasterXSize
 px_y = geo_dataset.RasterYSize
 
-# print("XMIN = " + str(xmin) + "\nXMAX = " + str(xmax))
-# print("YMIN = " + str(ymin) + "\nYMAX = " + str(ymax))
+# Return minimum and maximum coordinates of the GeoTIFF image
+# Note: Adding or removing half the resolution is a small correction needed to align the data
+xmin = gt[0] + x_resolution * 0.5
+xmax = gt[0] + (x_resolution * px_x) - x_resolution * 0.5
+ymin = gt[3] + (y_resolution * px_y) + y_resolution * 0.5
+ymax = gt[3] - y_resolution * 0.5
 
-# TODO: Fix for final image (this is currently only for original image)
-print("Distance for latitude (y) is " + str(-1*y_resolution * 110946.25) + " [meters/pixel].")
-print("Distance for longtitude (x) is " + str(x_resolution * 111319.49) + "*cos(latitude) [meters/pixel].")
-print("Note: We multiply by the cosine of latitude because it's dependent.")
+
+print("The original image has following properties: \n"
+      "Distance for latitude (y) is " + str(-1*y_resolution * 110946.25) + " [meters/pixel].\n"
+      "Distance for longtitude (x) is " + str(x_resolution * 111319.49) + "*cos(latitude) [meters/pixel].\n"
+      "Note: We multiply by the cosine of latitude because it's dependent.\n")
 
 # Clear dataset
 geo_dataset = None
@@ -90,25 +61,32 @@ geo_dataset = None
 original_xy = np.mgrid[xmin:xmax + x_resolution:x_resolution, ymax + y_resolution:ymin:y_resolution]
 
 # Create the figure (figsize is given in inches)
-fig = plt.figure(figsize=(2*px_x*0.0104166667, 2*px_y*0.0104166667))
-
-# Create basemap object
-# Note: We choose mercator projection and only show map from original GeoTIFF file
-bm = Basemap(projection='merc', lon_0=xmin, llcrnrlat=ymin, urcrnrlat=ymax, llcrnrlon=xmin, urcrnrlon=xmax, resolution='l')
+fig = plt.figure(figsize=(2*px_x/96, 2*px_y/96))
 
 # Create the projection objects for the conversion
 # Get original projection
 origin_proj = osr.SpatialReference()
 origin_proj.ImportFromWkt(proj)
-# Get target projection from Basemap object (projection argument)
-target_proj = osr.SpatialReference()
-target_proj.ImportFromProj4(bm.proj4string)
+origin_proj.AutoIdentifyEPSG()
+epsg_code = origin_proj.GetAttrValue("AUTHORITY", 1)
 
-# Convert coordinates original_xy from original projection to target projection
-converted_x, converted_y = convert_xy_projection(original_xy, origin_proj, target_proj)
+# Create basemap object
+# Note: We choose mercator projection and only show map from original GeoTIFF file
+bm = Basemap(epsg=epsg_code, llcrnrlat=ymin, urcrnrlat=ymax, llcrnrlon=xmin, urcrnrlon=xmax, resolution='l')
+
+# Return the dimensions of original_xy
+dim = original_xy[0, :, :].shape
+# Return total number of elements in original_xy
+sz = original_xy[0, :, :].size
+# Reshape: Reshape the original_xy to an mxn (m=2, n=sz) matrix and transpose it
+# Array: Create an array from transformed points with first column x
+xy_array = np.array(original_xy.reshape(2, sz).T)
+# Reshape the xy_array from a one dimensional matrix to a matrix of mx1 (m=dim) dimensions x_coords and y_coords
+x_coords = xy_array[:, 0].reshape(dim)
+y_coords = xy_array[:, 1].reshape(dim)
 
 # Plot data at coordinates converted_x and converted_y using a color map
-bm.pcolormesh(converted_x, converted_y, data[0, :, :].T, cmap=plt.cm.gray)
+bm.pcolormesh(x_coords, y_coords, data[0, :, :].T, cmap=plt.cm.gray)
 
 # Draw coastlines on map
 bm.drawcoastlines(linewidth=1)
@@ -123,21 +101,47 @@ listLon = df['longitude']
 # Using basemap instance to convert lontitude and lattitude to position on the map
 xlon, ylat = bm(listLon.tolist(), listLat.tolist())
 
-# Plot the route as dots on the map
+# Plot the route as lines on the map
 plt.plot(xlon, ylat, zorder=10, linewidth=0.5, alpha=1, color='Red')
 
-# TODO: Retrieve current location (currently constant values on route) -> see gps_read.py file
+# TODO: see gps_read.py file
 xlon_me = 134.1791
 ylat_me = -28.36473
 
 # Using basemap instance to convert lontitude and lattitude to position on the map
 xlon_me_map, ylat_me_map = bm(xlon_me, ylat_me)
 
-# Plot the current location as a dot on the map
+# Plot the current location as a cross on the map
 plt.plot(xlon_me_map, ylat_me_map, zorder=200, marker='+', alpha=1, markersize=4, color='Yellow')
-plt.title("Australian cloud map")
 
+# Draw title and legend on figure
+title_x, title_y = bm(xmin+(xmax-xmin)/2, ymax-1)
+plt.annotate('Australian cloud map', xy=(title_x, title_y), fontsize=60, color='white', ha='center')
+bbox_legend = dict(boxstyle='round,pad=0.1', fc='white', edgecolor='none', alpha=0.3)
+fontsize_legend = 40
+rte_legend_x, rte_legend_y = bm(xmin+0.5, ymax-2)
+plt.annotate('Route', xy=(rte_legend_x, rte_legend_y), fontsize=fontsize_legend, color='red', bbox=bbox_legend)
+you_legend_x, you_legend_y = bm(xmin+0.5, ymax-3)
+plt.annotate('Current location', xy=(you_legend_x, you_legend_y), fontsize=fontsize_legend, color='yellow', bbox=bbox_legend)
+
+# Turn axis off (remove border)
 plt.axis('off')
 
-# Saving an image from the generated file
+# Saving an image from the generated map and close the figure
 plt.savefig('world.png', dpi=72, bbox_inches='tight', pad_inches=0)
+plt.close()
+
+im = Image.open('world.png')
+im_width = im.size[0]
+im_height = im.size[1]
+
+dist_lat = -1*y_resolution * 110946.25 * (im_height/float(px_y))
+dist_lng = x_resolution * 111319.49 * (im_width/float(px_x))
+
+print("The final image has following properties: \n"
+      "Distance for latitude (y) is " + str(dist_lat) + " [meters/pixel].\n"
+      "Distance for longtitude (x) is " + str(dist_lng) + "*cos(latitude) [meters/pixel].\n"
+      "Note: We multiply by the cosine of latitude because it's dependent.")
+
+im.close()
+
