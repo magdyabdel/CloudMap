@@ -1,4 +1,4 @@
-name: EE5_testing
+name: CloudMAP_EE5
 channels:
   - conda-forge
   - defaults
@@ -7,6 +7,7 @@ dependencies:
   - backports.functools_lru_cache=1.5=py_1
   - backports_abc=0.5=py_1
   - basemap=1.2.0=py27hbee0394_0
+  - basemap-data-hires=1.2.0=0
   - blas=1.0=mkl
   - boost-cpp=1.68.0=h099cdad_1000
   - bzip2=1.0.6=h0c8e037_1002
@@ -60,10 +61,12 @@ dependencies:
   - mkl=2019.1=144
   - msys2-conda-epoch=20160418=1
   - numpy=1.13.3=py27hda5cba4_3
+  - olefile=0.46=py_0
   - openjpeg=2.3.0=h73d032e_1003
   - openssl=1.0.2r=h0c8e037_0
   - pandas=0.24.2=py27hc56fc5f_0
   - pcre=8.41=hc56fc5f_1003
+  - pillow=6.0.0=py27h6202ca7_0
   - pip=19.0.3=py27_0
   - poppler-data=0.4.9=1
   - postgresql=10.6=h5f81938_1000
@@ -71,6 +74,7 @@ dependencies:
   - pyparsing=2.3.1=py_0
   - pyproj=1.9.5.1=py27he834874_1006
   - pyqt=5.6.0=py27h4cbc711_1008
+  - pyserial=2.7=py27_0
   - pyshp=2.1.0=py_0
   - python=2.7.15=h2880e7c_1008
   - python-dateutil=2.8.0=py_0
