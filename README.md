@@ -40,7 +40,7 @@ below.
 or `geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx" 0`
 
 ### Generate example image with gamma correction and default intensity values
-`geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx"` 1
+`geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx" 1`
 
 ### Generate example image with gamma correction and custom intensity values
-`geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx"` 1 0.8 2
+`geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx" 1 0.8 2`
