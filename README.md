@@ -2,10 +2,10 @@
 [![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
 
 # CloudMap
-CloudMap is a python program part of a project. The project consists of receiving images with EUMETCast. The most 
-interesting images received on the basic service are the MSG1 weather images.
+CloudMap is a python program for a bachelor project. The project consists of receiving images with EUMETCast. The most 
+interesting images received on the basic service of EUMETCast are the MSG-1 weather images.
 
-CloudMap is converts GeoTIFF images into map images where a route (based on an Excel file) and the current location 
+CloudMap converts GeoTIFF images into map images where a route (based on an Excel file) and the current location 
 is plotted on. The used GeoTIFF images are generated using a custom build GDAL version which implements the MSG driver
 (which is not included by default). 
 
@@ -32,16 +32,16 @@ the python environment with Anaconda. Following packages are included:
 Usage: `geotiff_to_map.py [GeoTIFF] [Excel] [Gamma_correction{0|1}] [Temperature_intensity] [Brightness_intensity]`
 
 ## Examples
-Example files are located inside the examples folder. To run these files take a look at the example terminal usages 
+Example files are located inside the **examples** folder. To run these files take a look at the terminal examples 
 below.
 
 ### Generate example image without gamma correction
-`geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx"`
+`geotiff_to_map.py examples\MSG_flat.tif examples\latlon_MSG.xlsx`
 
-`geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx" 0`
+`geotiff_to_map.py examples\MSG_flat.tif examples\latlon_MSG.xlsx 0`
 
 ### Generate example image with gamma correction and default intensity values
-`geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx" 1`
+`geotiff_to_map.py examples\MSG_flat.tif examples\latlon_MSG.xlsx 1`
 
 ### Generate example image with gamma correction and custom intensity values
-`geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx" 1 0.8 2`
+`geotiff_to_map.py examples\MSG_flat.tif examples\latlon_MSG.xlsx 1 0.8 2`
