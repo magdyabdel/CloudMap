@@ -10,7 +10,7 @@ is plotted on. The used GeoTIFF images are generated using a custom build GDAL v
 (which is not included by default). 
 
 <details>
-<summary>Index</summary>
+<summary>CloudMap</summary>
 
    * [CloudMap](#cloudmap)
       * [Usage](#usage)
@@ -37,7 +37,8 @@ below.
 
 ### Generate example image without gamma correction
 `geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx"`
-or `geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx" 0`
+
+`geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx" 0`
 
 ### Generate example image with gamma correction and default intensity values
 `geotiff_to_map.py "examples\MSG_flat.tif" "examples\latlon_MSG.xlsx" 1`
