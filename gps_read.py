@@ -4,10 +4,8 @@ from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 import re
 
-
 ser = serial.Serial(port=argv[1], baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
                     bytesize=serial.EIGHTBITS, timeout=0)
-
 
 print("Connected to port " + ser.portstr + ".")
 

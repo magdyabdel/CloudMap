@@ -7,18 +7,60 @@ from sys import argv
 import matplotlib.pyplot as plt
 import pandas as pd
 from PIL import Image
+import datetime
+import os
 
-VERS_MAJ = 1
+# Create export directory if it doesn't exist yet
+export_dir = os.getcwd() + "\\export\\"
+if not os.path.exists(export_dir):
+    os.mkdir(export_dir)
+
+# Version
+VERS_MAJ = 2
 VERS_MIN = 0
 
 print("\033[93mGeoTIFF to map v" + str(VERS_MAJ) + "." + str(VERS_MIN) + "\033[0m\n")
 
+str_usage = "Usage: geotiff_to_map.py [GeoTIFF] [Excel] [Gamma_correction{0|1}] [Temperature_intensity] [Brightness_intensity]\n"
+
 # Return the console arguments in a variable
-# Usage: filetoread[n]
-filetoread = argv
+# Usage: cmd_args[n]
+argn = len(argv)
+
+# Default values
+arg_geotiff = None
+arg_excel = None
+arg_gamcorr = 0
+arg_gamcorrTI = 1
+arg_gamcorrBI = 0.5
+
+# Check number of arguments passed
+if argn == 3:
+    arg_geotiff = argv[1]
+    arg_excel = argv[2]
+elif argn == 4:
+    arg_gamcorr = int(argv[3])
+    if arg_gamcorr:
+        print("Using default values for gamma correction: TI = " + str(arg_gamcorrTI) + " BI = " + str(arg_gamcorrBI) + "\n")
+    arg_geotiff = argv[1]
+    arg_excel = argv[2]
+elif argn == 6:
+    arg_gamcorr = int(argv[3])
+    if arg_gamcorr:
+        arg_gamcorrTI = float(argv[4])
+        arg_gamcorrBI = float(argv[5])
+    arg_geotiff = argv[1]
+    arg_excel = argv[2]
+else:
+    print(str_usage)
+    exit(-1)
+
+time_now = datetime.datetime.now()
+str_time_clean = time_now.strftime('%Y-%m-%d %H:%M:%S')
+str_time_short = time_now.strftime('%Y%m%d%H%M%S')
 
 # Read GeoTIFF data into a GDAL object (dataset)
-geo_dataset = gdal.Open(filetoread[1])
+geo_dataset = gdal.Open(arg_geotiff)
 
 # Reading GDAL dataset as array to be able to plot it afterwards
 data = geo_dataset.ReadAsArray()
@@ -50,9 +92,8 @@ ymax = gt[3] - y_resolution * 0.5
 
 
 print("The original image has following properties: \n"
-      "Distance for latitude (y) is " + str(-1*y_resolution * 110946.25) + " [meters/pixel].\n"
       "Distance for longtitude (x) is " + str(x_resolution * 111319.49) + "*cos(latitude) [meters/pixel].\n"
-      "Note: We multiply by the cosine of latitude because it's dependent.\n")
+      "Distance for latitude (y) is " + str(-1*y_resolution * 110946.25) + " [meters/pixel].\n")
 
 # Clear dataset
 geo_dataset = None
@@ -71,7 +112,6 @@ origin_proj.AutoIdentifyEPSG()
 epsg_code = origin_proj.GetAttrValue("AUTHORITY", 1)
 
 # Create basemap object
-# Note: We choose mercator projection and only show map from original GeoTIFF file
 bm = Basemap(epsg=epsg_code, llcrnrlat=ymin, urcrnrlat=ymax, llcrnrlon=xmin, urcrnrlon=xmax, resolution='l')
 
 # Return the dimensions of original_xy
@@ -85,14 +125,51 @@ xy_array = np.array(original_xy.reshape(2, sz).T)
 x_coords = xy_array[:, 0].reshape(dim)
 y_coords = xy_array[:, 1].reshape(dim)
 
+# Get each channel seperately
+data4 = data[0, :, :].T     #
+data9 = data[1, :, :].T     #
+data10 = data[2, :, :].T    #
+
+# Gamma correction is disabled by default
+if arg_gamcorr:
+    # Gamma correction for IR channels
+    T_min = np.min(data9)
+    T_max = np.max(data9)
+    T_med = (T_max-T_min)/2
+    data9 = np.where(data9 < T_med, 128 - 128*((T_med-data9)/float(T_med-T_min))**(1/(float(arg_gamcorrTI)**2)), 128 + 128*((T_med-data9)/float(T_med-T_min))**(1/(float(arg_gamcorrTI)**2)))
+
+    T_min = np.min(data10)
+    T_max = np.max(data10)
+    T_med = (T_max-T_min)/2
+    data10 = np.where(data10 < T_med, 128 - 128*((T_med-data10)/float(T_med-T_min))**(1/(float(arg_gamcorrTI)**2)), 128 + 128*((T_med-data10)/float(T_med-T_min))**(1/(float(arg_gamcorrTI)**2)))
+
+    # Gamma correction for VIS channels
+    BTmin = np.min(data4)
+    BTmax = np.max(data4)
+    data4 = 255*((data4-BTmin)/float(BTmax-BTmin))**(1/float(arg_gamcorrBI))
+
+# Normalize
+data4 = data4/float(255)
+data9 = data9/float(255)
+data10 = data10/float(255)
+
+# Combine channels
+data_new = (data4 - (data9 + data10))*255
+
+# Shift values to 0-255
+difference_minmax = np.abs(np.min(data_new)) + np.abs(np.max(data_new))
+data_new = ((data_new - np.min(data_new))/difference_minmax)*255
+
+data = data_new
+
 # Plot data at coordinates converted_x and converted_y using a color map
-bm.pcolormesh(x_coords, y_coords, data[0, :, :].T, cmap=plt.cm.gray)
+bm.pcolormesh(x_coords, y_coords, data, cmap=plt.cm.gray)
 
 # Draw coastlines on map
-bm.drawcoastlines(linewidth=1)
+bm.drawcoastlines(linewidth=1, color='cyan')
 
 # Reading excel from file and select sheet
-df = pd.read_excel(filetoread[2], sheet_name='Sheet1')
+df = pd.read_excel(arg_excel, sheet_name='Sheet1')
 
 # Retrieve dataframe columns latitude and lontitude
 listLat = df['latitude']
@@ -102,46 +179,52 @@ listLon = df['longitude']
 xlon, ylat = bm(listLon.tolist(), listLat.tolist())
 
 # Plot the route as lines on the map
-plt.plot(xlon, ylat, zorder=10, linewidth=0.5, alpha=1, color='Red')
+plt.plot(xlon, ylat, zorder=10, linewidth=0.5, alpha=1, color='magenta')
 
 # TODO: see gps_read.py file
-xlon_me = 134.1791
-ylat_me = -28.36473
+xlon_me = 26.22
+ylat_me = 12.072
 
 # Using basemap instance to convert lontitude and lattitude to position on the map
 xlon_me_map, ylat_me_map = bm(xlon_me, ylat_me)
 
 # Plot the current location as a cross on the map
-plt.plot(xlon_me_map, ylat_me_map, zorder=200, marker='+', alpha=1, markersize=4, color='Yellow')
+plt.plot(xlon_me_map, ylat_me_map, zorder=200, marker='+', alpha=1, markersize=4, color='yellow')
 
 # Draw title and legend on figure
-title_x, title_y = bm(xmin+(xmax-xmin)/2, ymax-1)
-plt.annotate('Australian cloud map', xy=(title_x, title_y), fontsize=60, color='white', ha='center')
+title_x, title_y = bm(xmin+(xmax-xmin)/2, ymax-2)
+title_str = 'MSG1 ' + str_time_clean
+fontsize_title = 40
+bbox_title = dict(boxstyle='round,pad=0.1', fc='black', edgecolor='none', alpha=0.5)
+plt.annotate(title_str, xy=(title_x, title_y), fontsize=fontsize_title, color='white', ha='center', bbox=bbox_title)
 bbox_legend = dict(boxstyle='round,pad=0.1', fc='white', edgecolor='none', alpha=0.3)
-fontsize_legend = 40
+fontsize_legend = 30
 rte_legend_x, rte_legend_y = bm(xmin+0.5, ymax-2)
-plt.annotate('Route', xy=(rte_legend_x, rte_legend_y), fontsize=fontsize_legend, color='red', bbox=bbox_legend)
-you_legend_x, you_legend_y = bm(xmin+0.5, ymax-3)
+plt.annotate('Route', xy=(rte_legend_x, rte_legend_y), fontsize=fontsize_legend, color='magenta', bbox=bbox_legend)
+you_legend_x, you_legend_y = bm(xmin+0.5, ymax-4)
 plt.annotate('Current location', xy=(you_legend_x, you_legend_y), fontsize=fontsize_legend, color='yellow', bbox=bbox_legend)
 
 # Turn axis off (remove border)
 plt.axis('off')
 
 # Saving an image from the generated map and close the figure
-plt.savefig('world.png', dpi=72, bbox_inches='tight', pad_inches=0)
+str_gammacorrection = '_gammacorrection_TI' + str(arg_gamcorrTI) + 'BI' + str(arg_gamcorrBI) if arg_gamcorr else ''
+str_finalimage = export_dir + "MSG1_" + str_time_short + str_gammacorrection + ".png"
+plt.savefig(str_finalimage, dpi=72, bbox_inches='tight', pad_inches=0)
 plt.close()
 
-im = Image.open('world.png')
+print("Final image saved as " + str_finalimage + ".\n")
+
+im = Image.open(str_finalimage)
 im_width = im.size[0]
 im_height = im.size[1]
 
-dist_lat = -1*y_resolution * 110946.25 * (im_height/float(px_y))
-dist_lng = x_resolution * 111319.49 * (im_width/float(px_x))
+dist_lat = -1*y_resolution * 110946.25 * (px_y/float(im_height))
+dist_lng = x_resolution * 111319.49 * (px_x/float(im_width))
 
 print("The final image has following properties: \n"
-      "Distance for latitude (y) is " + str(dist_lat) + " [meters/pixel].\n"
       "Distance for longtitude (x) is " + str(dist_lng) + "*cos(latitude) [meters/pixel].\n"
-      "Note: We multiply by the cosine of latitude because it's dependent.")
+      "Distance for latitude (y) is " + str(dist_lat) + " [meters/pixel].\n")
 
 im.close()
 
