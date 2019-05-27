@@ -148,7 +148,7 @@ if warp_sp != 0:
 
 # Remove geostationary projected GeoTIFF
 keepGeostationary = 0
-if keepGeostationary:
+if not keepGeostationary:
     try:
         fh = open(translate_output_file, 'r')
         fh.close()
