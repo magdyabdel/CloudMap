@@ -9,6 +9,8 @@ import pandas as pd
 from PIL import Image
 import datetime
 import os
+import serial
+import re
 
 # Create export directory if it doesn't exist yet
 export_dir = os.getcwd() + "\\export\\"
@@ -32,6 +34,44 @@ arg_excel = None
 arg_gamcorr = 0
 arg_gamcorrTI = 1
 arg_gamcorrBI = 0.5
+
+# If the GPS is to be used enable it and change the USB port (on Windows COM port)
+enableGPS = 0       # GPS is disabled
+GPSport = 'COM7'    # USB port the Arduino is connected to
+ylat_me = 12.072    # Manual GPS location
+xlon_me = 26.22     # ..
+if enableGPS:
+    print("Retrieving GPS location...")
+    ser = serial.Serial(port=GPSport, baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
+                        bytesize=serial.EIGHTBITS, timeout=0)
+    print("Connected to port " + ser.portstr + ".")
+    line = []
+    num_sats = 0
+    ylat_me = 0
+    xlon_me = 0
+    while ser.readable():
+        if latitude != 0 and xlon_me != 0:
+            break
+        for c in ser.read():
+            line.append(c)
+            if c == '\n':
+                str_line = ''.join(line)
+                comment_bool = re.search(r"^#.*$", str_line)
+                if not comment_bool:
+                    gps_data = str_line.split()
+                    if len(gps_data) == 4:
+                        if gps_data[0] == 'G':
+                            num_sats = int(float(gps_data[1]))
+                            latitude = float(gps_data[2])
+                            xlon_me = float(gps_data[3])
+                            print('Connected to ' + str(num_sats) + ' satellites: ' + str(latitude) + ' ' + str(
+                                xlon_me) + '')
+                else:
+                    print(str_line[1:])
+                line = []
+                break
+    print("Disconnecting from port " + ser.portstr + ".")
+    ser.close()
 
 # Check number of arguments passed
 if argn == 3:
@@ -184,10 +224,6 @@ xlon, ylat = bm(listLon.tolist(), listLat.tolist())
 
 # Plot the route as lines on the map
 plt.plot(xlon, ylat, zorder=10, linewidth=0.5, alpha=1, color='magenta')
-
-# TODO: see gps_read.py file
-xlon_me = 26.22
-ylat_me = 12.072
 
 # Using basemap instance to convert lontitude and lattitude to position on the map
 xlon_me_map, ylat_me_map = bm(xlon_me, ylat_me)
