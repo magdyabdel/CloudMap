@@ -21,10 +21,9 @@ VERS_MIN = 0
 
 print("\033[93mGeoTIFF to map v" + str(VERS_MAJ) + "." + str(VERS_MIN) + "\033[0m\n")
 
-str_usage = "Usage: geotiff_to_map.py [GeoTIFF] [Excel] [Gamma_correction{0|1}] [Temperature_intensity] [Brightness_intensity]\n"
+str_usage = "Usage: geotiff_to_map.py [GeoTIFF] [Excel] [Gamma_correction{0|1}] [Temperature_gamma] [Brightness_gamma]\n"
 
-# Return the console arguments in a variable
-# Usage: cmd_args[n]
+# Return the number of console arguments in a variable
 argn = len(argv)
 
 # Default values
@@ -126,9 +125,14 @@ x_coords = xy_array[:, 0].reshape(dim)
 y_coords = xy_array[:, 1].reshape(dim)
 
 # Get each channel seperately
-data4 = data[0, :, :].T     #
+data4 = data[0, :, :].T     # *-1 removes land and low clouds (unless low gamma (<1) and high reflectance)
 data9 = data[1, :, :].T     #
 data10 = data[2, :, :].T    #
+
+## For debugging purposes
+# data4 = np.zeros(np.shape(data4))
+# data9 = np.zeros(np.shape(data4))
+# data10 = np.zeros(np.shape(data4))
 
 # Gamma correction is disabled by default
 if arg_gamcorr:
@@ -136,12 +140,12 @@ if arg_gamcorr:
     T_min = np.min(data9)
     T_max = np.max(data9)
     T_med = (T_max-T_min)/2
-    data9 = np.where(data9 < T_med, 128 - 128*((T_med-data9)/float(T_med-T_min))**(1/(float(arg_gamcorrTI)**2)), 128 + 128*((T_med-data9)/float(T_med-T_min))**(1/(float(arg_gamcorrTI)**2)))
+    data9 = np.where(data9 < T_med, 128 - 128*((T_med-data9)/float(T_med-T_min))**(1/(float(arg_gamcorrTI)**2)), 128 + 128*((T_med-data9)/float(T_med-T_min))**(1/(float(arg_gamcorrTI))))
 
     T_min = np.min(data10)
     T_max = np.max(data10)
     T_med = (T_max-T_min)/2
-    data10 = np.where(data10 < T_med, 128 - 128*((T_med-data10)/float(T_med-T_min))**(1/(float(arg_gamcorrTI)**2)), 128 + 128*((T_med-data10)/float(T_med-T_min))**(1/(float(arg_gamcorrTI)**2)))
+    data10 = np.where(data10 < T_med, 128 - 128*((T_med-data10)/float(T_med-T_min))**(1/(float(arg_gamcorrTI)**2)), 128 + 128*((T_med-data10)/float(T_med-T_min))**(1/(float(arg_gamcorrTI))))
 
     # Gamma correction for VIS channels
     BTmin = np.min(data4)
@@ -191,24 +195,28 @@ xlon_me_map, ylat_me_map = bm(xlon_me, ylat_me)
 # Plot the current location as a cross on the map
 plt.plot(xlon_me_map, ylat_me_map, zorder=200, marker='+', alpha=1, markersize=4, color='yellow')
 
-# Draw title and legend on figure
-title_x, title_y = bm(xmin+(xmax-xmin)/2, ymax-2)
-title_str = 'MSG1 ' + str_time_clean
-fontsize_title = 40
-bbox_title = dict(boxstyle='round,pad=0.1', fc='black', edgecolor='none', alpha=0.5)
-plt.annotate(title_str, xy=(title_x, title_y), fontsize=fontsize_title, color='white', ha='center', bbox=bbox_title)
-bbox_legend = dict(boxstyle='round,pad=0.1', fc='white', edgecolor='none', alpha=0.3)
-fontsize_legend = 30
-rte_legend_x, rte_legend_y = bm(xmin+0.5, ymax-2)
-plt.annotate('Route', xy=(rte_legend_x, rte_legend_y), fontsize=fontsize_legend, color='magenta', bbox=bbox_legend)
-you_legend_x, you_legend_y = bm(xmin+0.5, ymax-4)
-plt.annotate('Current location', xy=(you_legend_x, you_legend_y), fontsize=fontsize_legend, color='yellow', bbox=bbox_legend)
+# Enable drawing title and legend
+enable_titlelegend = 1
+
+if enable_titlelegend:
+    # Draw title and legend on figure
+    title_x, title_y = bm(xmin+(xmax-xmin)/2, ymax-2)
+    title_str = 'MSG1 ' + str_time_clean
+    fontsize_title = 40
+    bbox_title = dict(boxstyle='round,pad=0.1', fc='black', edgecolor='none', alpha=0.5)
+    plt.annotate(title_str, xy=(title_x, title_y), fontsize=fontsize_title, color='white', ha='center', bbox=bbox_title)
+    bbox_legend = dict(boxstyle='round,pad=0.1', fc='white', edgecolor='none', alpha=0.3)
+    fontsize_legend = 30
+    rte_legend_x, rte_legend_y = bm(xmin+0.5, ymax-2)
+    plt.annotate('Route', xy=(rte_legend_x, rte_legend_y), fontsize=fontsize_legend, color='magenta', bbox=bbox_legend)
+    you_legend_x, you_legend_y = bm(xmin+0.5, ymax-4)
+    plt.annotate('Current location', xy=(you_legend_x, you_legend_y), fontsize=fontsize_legend, color='yellow', bbox=bbox_legend)
 
 # Turn axis off (remove border)
 plt.axis('off')
 
 # Saving an image from the generated map and close the figure
-str_gammacorrection = '_gammacorrection_TI' + str(arg_gamcorrTI) + 'BI' + str(arg_gamcorrBI) if arg_gamcorr else ''
+str_gammacorrection = '_GCOR' if arg_gamcorr else ''
 str_finalimage = export_dir + "MSG1_" + str_time_short + str_gammacorrection + ".png"
 plt.savefig(str_finalimage, dpi=72, bbox_inches='tight', pad_inches=0)
 plt.close()
