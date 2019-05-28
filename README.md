@@ -2,7 +2,7 @@
 [![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
 
 # CloudMap
-CloudMap consists oftwo python programs for a bachelor project. The project consists of receiving images with EUMETCast. The most interesting images received on the basic service of EUMETCast are the MSG-1 weather images which are HRIT encoded. These images are converted into GeoTIFF images and processed into a cloud density image showing a route and GPS location.
+CloudMap consists of two python programs for a bachelor project. The project consists of receiving images with EUMETCast. The most interesting images received on the basic service of EUMETCast are the MSG-1 weather images which are HRIT encoded. These images are converted into GeoTIFF images and processed into a cloud density image showing a route and GPS location.
 
 For decompressing the HRIT images, GDAL is re-build with the msg driver enabled. The program that converts the HRIT files into GeoTIFF is the msg_to_geotiff.py file. Applying image processing and adding the route, coastlines, GPS location and datetime is done by geotiff_to_map.py. The route is taken from an Excel file and the GPS location from an Arduino with a GPS sensor.
 
@@ -12,13 +12,19 @@ For decompressing the HRIT images, GDAL is re-build with the msg driver enabled.
    * [CloudMap](#cloudmap)
       * [msg_to_geotiff.py](#msg_to_geotiffpy)
           * [Usage](#msg_to_geotiffpy)
-          * [Examples](#msg_to_geotiffpy)
       * [geotiff_to_map.py](#geotiff_to_mappy)
           * [Usage](#geotiff_to_mappy)
+          * [Examples](#msg_to_geotiffpy)
          
 </details>
 
 ## msg_to_geotiff.py
+To use this program GDAL has to be build with the MSG driver enabled.
+
+### Usage
+`python msg_to_geotiff.py [YYYYMMDDhhmm] [left] [top] [right] [bottom]`
+
+## geotiff_to_map.py
 To generate the exact python 2.7 environment used for this program one can find the _environment.yml_ file to create 
 the python environment with Anaconda. Following packages are included:
 
@@ -47,9 +53,3 @@ below.
 
 #### Generate example image with gamma correction and custom intensity values
 `geotiff_to_map.py examples\MSG_flat.tif examples\latlon_MSG.xlsx 1 0.8 2`
-
-## geotiff_to_map.py
-To use this program GDAL has to be build with the MSG driver enabled.
-
-### Usage
-`python msg_to_geotiff.py [YYYYMMDDhhmm] [left] [top] [right] [bottom]`
