@@ -37,7 +37,7 @@ the python environment with Anaconda. Following packages are included:
 
 ### Usage
 
-`python geotiff_to_map.py [GeoTIFF] [Excel] [Gamma_correction{0|1}] [Temperature_intensity] [Brightness_intensity]`
+`python geotiff_to_map.py [GeoTIFF] [Excel] [Gamma_correction{0|1}] [Temperature_gamma] [Brightness_gamma]`
 
 ### Examples
 Example files are located inside the **examples** folder. To run these files take a look at the terminal examples 
