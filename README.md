@@ -10,11 +10,11 @@ For decompressing the HRIT images, GDAL is re-build with the msg driver enabled.
 <summary>CloudMap</summary>
 
    * [CloudMap](#cloudmap)
-      * [msg_to_geotiff.py](#mtg)
-          * [Usage](#usage)
-          * [Examples](#examples)
-      * [geotiff_to_map.py](#gtm)
-          * [Usage](#gtm-usage)
+      * [msg_to_geotiff.py](#msg_to_geotiffpy)
+          * [Usage](#msg_to_geotiffpy)
+          * [Examples](#msg_to_geotiffpy)
+      * [geotiff_to_map.py](#geotiff_to_mappy)
+          * [Usage](#geotiff_to_mappy)
          
 </details>
 
