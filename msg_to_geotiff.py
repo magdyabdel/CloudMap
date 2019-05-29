@@ -139,7 +139,7 @@ if None not in (arg_left, arg_top, arg_right, arg_bottom):
                                "-t_srs", "EPSG:4326", "-dstalpha", "-r", "lanczos", "-co", "COMPRESS=LZW",
                                translate_output_file, warp_output_file])
 else:
-    warp_sp = subprocess.call(["gdalwarp", "-te", "-te_srs", "EPSG:4326", "-t_srs", "EPSG:4326",
+    warp_sp = subprocess.call(["gdalwarp", "-t_srs", "EPSG:4326",
                                "-dstalpha", "-r", "lanczos", "-co", "COMPRESS=LZW", translate_output_file,
                                warp_output_file])
 if warp_sp != 0:
