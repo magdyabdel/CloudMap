@@ -64,11 +64,11 @@ if argn == 2:
         print(str_usage)
         exit(-1)
 elif argn == 6:
-    arg_datetime = str(argv[1]) if get_digits(int(argv[1])) == 12 else None
-    arg_left = str(argv[2]) if -180 < argv[2] <= 180 else None
-    arg_top = str(argv[3]) if -90 <= argv[3] <= 90 else None
-    arg_right = str(argv[4]) if -180 < argv[4] <= 180 else None
-    arg_bottom = str(argv[5]) if -90 <= argv[5] <= 90 else None
+    arg_datetime = argv[1] if get_digits(int(argv[1])) == 12 else None
+    arg_left = argv[2] if -180 < int(argv[2]) <= 180 else None
+    arg_top = argv[3] if -90 <= int(argv[3]) <= 90 else None
+    arg_right = argv[4] if -180 < int(argv[4]) <= 180 else None
+    arg_bottom = argv[5] if -90 <= int(argv[5]) <= 90 else None
     if arg_datetime is None:
         print(str_usage)
         exit(-1)
@@ -135,11 +135,11 @@ if translate_sp != 0:
 
 # Get the mercator projected image from the geostationary image
 if None not in (arg_left, arg_top, arg_right, arg_bottom):
-    warp_sp = subprocess.call(["gdalwarp", "-te", arg_left, arg_bottom, arg_right, arg_top, "-te_srs", "EPSG:4326",
+    warp_sp = subprocess.call(["gdalwarp", "-te", str(arg_left), str(arg_bottom), str(arg_right), str(arg_top), "-te_srs", "EPSG:4326",
                                "-t_srs", "EPSG:4326", "-dstalpha", "-r", "lanczos", "-co", "COMPRESS=LZW",
                                translate_output_file, warp_output_file])
 else:
-    warp_sp = subprocess.call(["gdalwarp", "-te", "-te_srs", "EPSG:4326", "-t_srs", "EPSG:4326",
+    warp_sp = subprocess.call(["gdalwarp", "-t_srs", "EPSG:4326",
                                "-dstalpha", "-r", "lanczos", "-co", "COMPRESS=LZW", translate_output_file,
                                warp_output_file])
 if warp_sp != 0:
